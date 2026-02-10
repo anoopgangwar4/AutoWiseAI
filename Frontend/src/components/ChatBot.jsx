@@ -1,63 +1,44 @@
-import { useState } from "react";
-import "../public/css/Chatbot.css";
+import React from "react";
 
-export default function ChatBot() {
-  const [messages, setMessages] = useState([
-    {
-      sender: "bot",
-      text: "Hi 👋 I'm your Vehicle Valuation Assistant. Is it a car or a bike?",
-    },
-  ]);
-  const [input, setInput] = useState("");
-  const [sessionId, setSessionId] = useState(null);
-  const [loading, setLoading] = useState(false);
-
-  const sendMessage = async () => {
-    if (!input.trim()) return;
-
-    const userMsg = { sender: "user", text: input };
-    setMessages((prev) => [...prev, userMsg]);
-    setInput("");
-    setLoading(true);
-
-    const res = await fetch("http://localhost:5000/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: userMsg.text,
-        session_id: sessionId,
-      }),
-    });
-
-    const data = await res.json();
-
-    setMessages((prev) => [...prev, { sender: "bot", text: data.reply }]);
-    setSessionId(data.session_id);
-    setLoading(false);
-  };
-
+const ChatBot = () => {
   return (
-    <div className="chat-wrapper">
-      <div className="chat-header">Product valuation AI</div>
-
-      <div className="chat-body">
-        {messages.map((m, i) => (
-          <div key={i} className={`msg ${m.sender}`}>
-            {m.text}
-          </div>
-        ))}
-        {loading && <div className="msg bot">Typing...</div>}
-      </div>
-
-      <div className="chat-input">
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your message..."
-          onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-        />
-        <button onClick={sendMessage}>Send</button>
+    <div>
+      <h1>How can help I you today?</h1>
+      <h1>This page currently in working!</h1>
+      <div className="chatbot-container bg-light p-5 rounded-lg shadow-md mt-5">
+        <div className=" border-4 border-primary rounded-lg p-4 mb-4">
+          Hi! I have a question about car price prediction.
+        </div>
+        <div className="chatbot-message bot-message mb-3 p-3 bg-secondary text-white rounded-lg">
+          Hello! I'm AutoWise AI, your friendly assistant for vehicle price
+          predictions. How can I assist you today?
+        </div>
+        <div className="chatbot-message user-message mb-3 p-3 bg-primary text-white rounded-lg">
+          Can you tell me how to use the car price predictor?
+        </div>
+        <div className="chatbot-message bot-message mb-3 p-3 bg-secondary text-white rounded-lg">
+          Of course! To use the car price predictor, simply navigate to the "Car
+          Predictor" page from the homepage. There, you'll find a form where you
+          can select the company, model, year of purchase, and other details
+          about your car. Once you fill in the information and submit the form,
+          our AI will analyze the data and provide you with an estimated price
+          for your vehicle. If you have any specific questions about the form or
+          the prediction process, feel free to ask!
+        </div>
+        <div className="chatbot-message user-message mb-3 p-3 bg-primary text-white rounded-lg">
+          That's great! Can you also help me with bike price prediction?
+        </div>
+        <div className="chatbot-message bot-message mb-3 p-3 bg-secondary text-white rounded-lg">
+          Absolutely! Just like the car price predictor, we also have a "Bike
+          Predictor" page. You can select the company, model, year of purchase,
+          and other relevant details about your bike. After submitting the form,
+          our AI will provide you with an estimated price for your bike as well.
+          If you have any questions about using the bike predictor or need
+          assistance with anything else, I'm here to help!
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default ChatBot;

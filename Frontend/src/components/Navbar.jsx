@@ -20,10 +20,11 @@ export default function Navbar() {
 
       {/* Desktop Menu */}
       <div className="menu">
+        
         <NavLink to="/" className="link">
           Home
         </NavLink>
-        <NavLink to="/chatwithus" className="link">
+        <NavLink to="/chatWithUs" className="link">
           ChatBot
         </NavLink>
         <NavLink to="/car" className="link">
@@ -33,12 +34,9 @@ export default function Navbar() {
           Bike
         </NavLink>
 
-        <NavLink to="/login" className="link">
-          <button className="btn primary">Login</button>
-        </NavLink>
-        <NavLink to="/signup" className="link">
-          <button className="btn secondary">Signup</button>
-        </NavLink>
+
+        <button className="btn primary">Login</button>
+        <button className="btn secondary">Signup</button>
 
         <button className="btn toggle" onClick={() => setDarkMode(!darkMode)}>
           {darkMode ? "Light" : "Dark"}

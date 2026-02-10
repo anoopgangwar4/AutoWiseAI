@@ -1,7 +1,7 @@
 
 // const API_BASE = "http://localhost:5000";
 // const API_BASE = "http://0.0.0.0:8080";
-const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+const API_BASE = import.meta.env.VITE_API_BASE;
 
 
 export async function predictCarPrice(data) {
