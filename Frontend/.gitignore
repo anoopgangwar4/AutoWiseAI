@@ -24,3 +24,9 @@ dist-ssr
 *.sw?
 
 .env
+.env.*.local
+
+../Backend/.env
+../Backend/.env.*.local
+../Backend/node_modules
+../Backend/venv
