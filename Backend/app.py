@@ -1,66 +1,30 @@
-from flask import Flask, render_template, request
+from flask import Flask, request, jsonify
+from flask_cors import CORS
 import pickle
 import pandas as pd
 import numpy as np
+import uuid
+import re
+from collections import defaultdict
 
 app = Flask(__name__)
+CORS(app)
 
-# ----------------------------
-# Load Models
-# ----------------------------
-car_model = pickle.load(open('models/Car_LinearRegressionModel.pkl', 'rb'))
-bike_model = pickle.load(open('models/Bike_LinearRegressionModel.pkl', 'rb'))
+# ========================
+# Load ML models
+# ========================
+car_model = pickle.load(open("models/Car_LinearRegressionModel.pkl", "rb"))
+bike_model = pickle.load(open("models/Bike_LinearRegressionModel.pkl", "rb"))
 
-# ----------------------------
-# Load Datasets
-# ----------------------------
-car_data = pd.read_csv('data/Car_Data.csv')
-bike_data = pd.read_csv('data/Bike_Data.csv')
 
-# ----------------------------
-# Home Route
-# ----------------------------
 @app.route('/')
 def home():
-    return render_template('index.html')
+    return "Welcome to the Vehicle Price Prediction API!"
 
-# ----------------------------
-# Car Page
-# ----------------------------
-@app.route('/car')
-def car_page():
-    companies = sorted(car_data['company'].unique())
-    car_models = sorted(car_data['name'].unique())
-    years = sorted(car_data['year'].unique(), reverse=True)
-    fuel_type = sorted(car_data['fuel_type'].unique())
 
-    return render_template('Car.html',
-                           companies=companies,
-                           car_models=car_models,
-                           years=years,
-                           fuel_type=fuel_type)
 
-# ----------------------------
-# Bike Page
-# ----------------------------
-@app.route('/bike')
-def bike_page():
-    companies = sorted(bike_data['company'].unique())
-    bike_models = sorted(bike_data['name'].unique())
-    years = sorted(bike_data['year'].unique(), reverse=True)
-    fuel_type = sorted(bike_data['fuel_type'].unique())
 
-    # Pass bike_data as a dictionary to Jinja
-    return render_template('Bike.html',
-                           companies=companies,
-                           bike_models=bike_models,
-                           years=years,
-                           fuel_type=fuel_type,
-                           bike_data=bike_data.to_dict(orient='records'))
 
-# ----------------------------
-# Car Prediction
-# ----------------------------
 @app.route('/predict_car', methods=['POST'])
 def predict_car():
     company = request.form.get('company')
@@ -96,8 +60,12 @@ def predict_bike():
 
     return f" {np.round(real_price, 2):,.2f}"
 
-# ----------------------------
-# Run Server
-# ----------------------------
-if __name__ == '__main__':
+
+
+
+
+
+
+
+if __name__ == "__main__":
     app.run(debug=True)
