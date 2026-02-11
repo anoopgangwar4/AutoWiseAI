@@ -1,159 +1,103 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask import Flask, render_template, request
 import pickle
 import pandas as pd
 import numpy as np
-import uuid
-import re
-from collections import defaultdict
 
 app = Flask(__name__)
-CORS(app)
 
-# ========================
-# Load ML models
-# ========================
-car_model = pickle.load(open("models/Car_LinearRegressionModel.pkl", "rb"))
-bike_model = pickle.load(open("models/Bike_LinearRegressionModel.pkl", "rb"))
+# ----------------------------
+# Load Models
+# ----------------------------
+car_model = pickle.load(open('models/Car_LinearRegressionModel.pkl', 'rb'))
+bike_model = pickle.load(open('models/Bike_LinearRegressionModel.pkl', 'rb'))
 
-# ========================
-# Session store
-# ========================
-sessions = defaultdict(lambda: {
-    "step": 0,
-    "data": {
-        "type": None,
-        "company": None,
-        "model": None,
-        "year": None,
-        "fuel": None,
-        "km": None
-    }
-})
+# ----------------------------
+# Load Datasets
+# ----------------------------
+car_data = pd.read_csv('data/Car_Data.csv')
+bike_data = pd.read_csv('data/Bike_Data.csv')
 
-FIELDS = ["type", "company", "model", "year", "fuel", "km"]
+# ----------------------------
+# Home Route
+# ----------------------------
+@app.route('/')
+def home():
+    return render_template('index.html')
 
-QUESTIONS = {
-    "type": "Is it a car or a bike?",
-    "company": "What is the company (e.g., Honda, Toyota)?",
-    "model": "What is the model name?",
-    "year": "Which year is it?",
-    "fuel": "What fuel type does it use?",
-    "km": "How many kilometers has it driven?"
-}
+# ----------------------------
+# Car Page
+# ----------------------------
+@app.route('/car')
+def car_page():
+    companies = sorted(car_data['company'].unique())
+    car_models = sorted(car_data['name'].unique())
+    years = sorted(car_data['year'].unique(), reverse=True)
+    fuel_type = sorted(car_data['fuel_type'].unique())
 
-# ========================
-# Extractors
-# ========================
-def parse_type(text):
-    t = text.lower()
-    if "bike" in t or "motorcycle" in t:
-        return "bike"
-    if "car" in t or "suv" in t or "sedan" in t:
-        return "car"
-    return None
+    return render_template('Car.html',
+                           companies=companies,
+                           car_models=car_models,
+                           years=years,
+                           fuel_type=fuel_type)
 
-def parse_year(text):
-    m = re.search(r"\b(19|20)\d{2}\b", text)
-    return int(m.group()) if m else None
+# ----------------------------
+# Bike Page
+# ----------------------------
+@app.route('/bike')
+def bike_page():
+    companies = sorted(bike_data['company'].unique())
+    bike_models = sorted(bike_data['name'].unique())
+    years = sorted(bike_data['year'].unique(), reverse=True)
+    fuel_type = sorted(bike_data['fuel_type'].unique())
 
-def parse_km(text):
-    m = re.search(r"\b\d{4,7}\b", text)
-    return int(m.group()) if m else None
+    # Pass bike_data as a dictionary to Jinja
+    return render_template('Bike.html',
+                           companies=companies,
+                           bike_models=bike_models,
+                           years=years,
+                           fuel_type=fuel_type,
+                           bike_data=bike_data.to_dict(orient='records'))
 
-def parse_fuel(text):
-    fuels = ["petrol", "diesel", "electric", "cng", "hybrid"]
-    for f in fuels:
-        if f in text.lower():
-            return f.capitalize()
-    return None
+# ----------------------------
+# Car Prediction
+# ----------------------------
+@app.route('/predict_car', methods=['POST'])
+def predict_car():
+    company = request.form.get('company')
+    car_model_name = request.form.get('car_model')
+    year = int(request.form.get('year'))
+    fuel_type = request.form.get('fuel_type')
+    driven = int(request.form.get('kilo_driven'))
 
-def parse_company(text):
-    if text.isalpha():
-        return text.capitalize()
-    return None
+    input_df = pd.DataFrame([[company, car_model_name, year, fuel_type, driven]],
+                            columns=['company', 'name', 'year', 'fuel_type', 'kms_driven'])
 
-def parse_model(text):
-    if re.search(r"[a-zA-Z]", text):
-        return text.capitalize()
-    return None
+    log_pred = car_model.predict(input_df)
+    real_price = np.expm1(log_pred[0])  # Convert log price back to real INR
 
-# ========================
-# Chat Route
-# ========================
-@app.route("/api/chat", methods=["POST"])
-def chat():
-    body = request.get_json()
-    msg = body.get("message", "").strip()
-    session_id = body.get("session_id")
+    return f" {np.round(real_price, 2):,.2f}"
 
-    if not session_id:
-        session_id = str(uuid.uuid4())
+# ----------------------------
+# Bike Prediction
+# ----------------------------
+@app.route('/predict_bike', methods=['POST'])
+def predict_bike():
+    company = request.form.get('company')
+    bike_model_name = request.form.get('bike_model')
+    year = int(request.form.get('year'))
+    kilo_driven = int(request.form.get('kilo_driven'))
+    fuel_type = request.form.get('fuel_type', 'Petrol')  # default Petrol if not provided
 
-    session = sessions[session_id]
-    step = session["step"]
-    field = FIELDS[step]
+    input_df = pd.DataFrame([[company, bike_model_name, year, kilo_driven, fuel_type]],
+                        columns=['company', 'name', 'year', 'kms_driven', 'fuel_type'])
 
-    value = None
+    log_pred = bike_model.predict(input_df)
+    real_price = np.expm1(log_pred[0])  # Convert log price back to real INR
 
-    if field == "type":
-        value = parse_type(msg)
-    elif field == "company":
-        value = parse_company(msg)
-    elif field == "model":
-        value = parse_model(msg)
-    elif field == "year":
-        value = parse_year(msg)
-    elif field == "fuel":
-        value = parse_fuel(msg)
-    elif field == "km":
-        value = parse_km(msg)
+    return f" {np.round(real_price, 2):,.2f}"
 
-    # ❌ Invalid input — ask same question again
-    if value is None:
-        return jsonify({
-            "reply": QUESTIONS[field],
-            "session_id": session_id
-        })
-
-    # ✅ Save valid value
-    session["data"][field] = value
-    session["step"] += 1
-
-    # ------------------
-    # Ask next question
-    # ------------------
-    if session["step"] < len(FIELDS):
-        next_field = FIELDS[session["step"]]
-        return jsonify({
-            "reply": QUESTIONS[next_field],
-            "session_id": session_id
-        })
-
-    # ------------------
-    # Predict
-    # ------------------
-    d = session["data"]
-
-    if d["type"] == "car":
-        df = pd.DataFrame([[d["company"], d["model"], d["year"], d["fuel"], d["km"]]],
-                          columns=["company", "name", "year", "fuel_type", "kms_driven"])
-        log_price = car_model.predict(df)
-    else:
-        df = pd.DataFrame([[d["company"], d["model"], d["year"], d["km"], d["fuel"]]],
-                          columns=["company", "name", "year", "kms_driven", "fuel_type"])
-        log_price = bike_model.predict(df)
-
-    price = np.expm1(log_price[0])
-
-    # Reset session
-    sessions.pop(session_id, None)
-
-    return jsonify({
-        "reply": f"💰 Estimated value of your {d['company']} {d['model']} ({d['year']}) is ₹{round(float(price), 2)}",
-        "session_id": None
-    })
-
-
-if __name__ == "__main__":
+# ----------------------------
+# Run Server
+# ----------------------------
+if __name__ == '__main__':
     app.run(debug=True)
